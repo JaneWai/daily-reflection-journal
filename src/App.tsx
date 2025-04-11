@@ -1,77 +1,71 @@
-import React, { useState } from 'react';
-import { ReflectionProvider } from './context/ReflectionContext';
+import React, { useState, useEffect } from 'react';
 import Header from './components/Header';
-import Footer from './components/Footer';
 import NewEntryForm from './components/NewEntryForm';
 import ListView from './components/ListView';
 import CalendarView from './components/CalendarView';
+import Footer from './components/Footer';
+import SyncStatus from './components/SyncStatus';
+import { ReflectionProvider } from './context/ReflectionContext';
+import { useAuth } from './context/AuthContext';
 
-function App() {
+const App: React.FC = () => {
   const [view, setView] = useState<'list' | 'calendar'>('list');
   const [showForm, setShowForm] = useState(false);
+  const { isAuthenticated } = useAuth();
+
+  useEffect(() => {
+    document.title = 'Daily Reflection Journal';
+  }, []);
 
   return (
     <ReflectionProvider>
-      <div className="min-h-screen bg-amber-50 flex flex-col">
+      <div className="min-h-screen flex flex-col bg-amber-50">
         <Header />
         
-        <main className="container mx-auto py-6 px-4 flex-grow">
-          <div className="max-w-4xl mx-auto">
-            <div className="flex justify-between items-center mb-6">
-              <div className="bg-white rounded-lg shadow-md overflow-hidden">
-                <div className="flex">
-                  <button
-                    onClick={() => setView('list')}
-                    className={`px-6 py-3 text-center font-medium transition-colors ${
-                      view === 'list'
-                        ? 'bg-amber-100 text-amber-800'
-                        : 'bg-white text-gray-600 hover:bg-amber-50'
-                    }`}
-                  >
-                    List View
-                  </button>
-                  <button
-                    onClick={() => setView('calendar')}
-                    className={`px-6 py-3 text-center font-medium transition-colors ${
-                      view === 'calendar'
-                        ? 'bg-amber-100 text-amber-800'
-                        : 'bg-white text-gray-600 hover:bg-amber-50'
-                    }`}
-                  >
-                    Calendar View
-                  </button>
-                </div>
-              </div>
-              
+        <main className="flex-1 container mx-auto px-4 py-6">
+          <div className="flex justify-between items-center mb-6">
+            <div className="flex space-x-2">
               <button
-                onClick={() => setShowForm(true)}
-                className="py-3 px-6 bg-gradient-to-r from-amber-500 to-amber-600 text-white font-medium rounded-lg shadow hover:from-amber-600 hover:to-amber-700 transition-all flex items-center justify-center gap-2"
+                onClick={() => setView('list')}
+                className={`px-4 py-2 rounded-lg ${
+                  view === 'list'
+                    ? 'bg-amber-500 text-white'
+                    : 'bg-white text-amber-700 border border-amber-300'
+                }`}
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
-                </svg>
-                Add New Entry
+                List View
+              </button>
+              <button
+                onClick={() => setView('calendar')}
+                className={`px-4 py-2 rounded-lg ${
+                  view === 'calendar'
+                    ? 'bg-amber-500 text-white'
+                    : 'bg-white text-amber-700 border border-amber-300'
+                }`}
+              >
+                Calendar View
               </button>
             </div>
             
-            {showForm && (
-              <div className="mb-6">
-                <div className="bg-white p-6 rounded-lg shadow-md border border-amber-100">
-                  <h2 className="text-xl font-bold text-amber-800 mb-4">New Reflection</h2>
-                  
-                  <NewEntryForm onClose={() => setShowForm(false)} />
-                </div>
-              </div>
-            )}
-            
-            {view === 'list' ? <ListView /> : <CalendarView />}
+            <button
+              onClick={() => setShowForm(true)}
+              className="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors"
+            >
+              Add Reflection
+            </button>
           </div>
+          
+          {isAuthenticated && <SyncStatus />}
+          
+          {view === 'list' ? <ListView /> : <CalendarView />}
+          
+          {showForm && <NewEntryForm onClose={() => setShowForm(false)} />}
         </main>
         
         <Footer />
       </div>
     </ReflectionProvider>
   );
-}
+};
 
 export default App;
