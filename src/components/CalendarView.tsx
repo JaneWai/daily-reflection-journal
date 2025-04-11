@@ -42,134 +42,139 @@ const CalendarView: React.FC = () => {
     const lastDay = new Date(year, month + 1, 0);
     
     // Day of the week for the first day (0 = Sunday, 6 = Saturday)
-    const startingDayOfWeek = firstDay.getDay();
+    const startDay = firstDay.getDay();
+    // Total days in month
+    const totalDays = lastDay.getDate();
     
-    // Total days in the month
-    const daysInMonth = lastDay.getDate();
+    // Create array for calendar days
+    const calendarDays = [];
     
-    // Calendar rows needed
-    const totalDays = startingDayOfWeek + daysInMonth;
-    const totalWeeks = Math.ceil(totalDays / 7);
-    
-    const calendar = [];
-    let dayCount = 1;
-    
-    // Create entries map for quick lookup
-    const entriesMap: Record<string, boolean> = {};
-    entries.forEach(entry => {
-      const date = new Date(entry.date);
-      if (date.getMonth() === month && date.getFullYear() === year) {
-        const key = `${year}-${month + 1}-${date.getDate()}`;
-        entriesMap[key] = true;
-      }
-    });
-    
-    // Generate weeks
-    for (let week = 0; week < totalWeeks; week++) {
-      const weekDays = [];
-      
-      // Generate days for each week
-      for (let day = 0; day < 7; day++) {
-        if ((week === 0 && day < startingDayOfWeek) || dayCount > daysInMonth) {
-          // Empty cell
-          weekDays.push(<td key={`empty-${week}-${day}`} className="p-1"></td>);
-        } else {
-          // Date cell
-          const date = new Date(year, month, dayCount);
-          const dateString = date.toISOString();
-          const dateKey = `${year}-${month + 1}-${dayCount}`;
-          const hasEntry = entriesMap[dateKey];
-          
-          const isSelected = selectedDate === dateString;
-          const isToday = new Date().toDateString() === date.toDateString();
-          
-          weekDays.push(
-            <td key={dateString} className="p-1">
-              <button
-                onClick={() => setSelectedDate(dateString)}
-                className={`w-full h-10 rounded-full flex items-center justify-center transition-colors
-                  ${isSelected ? 'bg-amber-500 text-white' : ''}
-                  ${isToday && !isSelected ? 'bg-amber-100' : ''}
-                  ${hasEntry && !isSelected ? 'font-bold text-amber-700' : 'text-gray-700'}
-                  hover:bg-amber-200`}
-              >
-                {dayCount}
-              </button>
-            </td>
-          );
-          dayCount++;
-        }
-      }
-      
-      calendar.push(<tr key={`week-${week}`}>{weekDays}</tr>);
+    // Add empty cells for days before the first day of the month
+    for (let i = 0; i < startDay; i++) {
+      calendarDays.push(null);
     }
     
-    return calendar;
+    // Add days of the month
+    for (let day = 1; day <= totalDays; day++) {
+      calendarDays.push(new Date(year, month, day));
+    }
+    
+    return calendarDays;
   };
+
+  // Check if a date has entries
+  const hasEntries = (date: Date) => {
+    return entries.some(entry => {
+      const entryDate = new Date(entry.date);
+      return (
+        entryDate.getDate() === date.getDate() &&
+        entryDate.getMonth() === date.getMonth() &&
+        entryDate.getFullYear() === date.getFullYear()
+      );
+    });
+  };
+
+  // Format month and year
+  const formatMonthYear = (date: Date) => {
+    return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  };
+
+  // Handle date selection
+  const handleDateClick = (date: Date) => {
+    const formattedDate = date.toISOString().split('T')[0];
+    setSelectedDate(formattedDate);
+  };
+
+  const calendarDays = generateCalendar();
 
   return (
     <div className="p-4">
       <div className="bg-white rounded-lg shadow-md overflow-hidden">
-        <div className="bg-gradient-to-r from-amber-100 to-amber-200 p-4">
-          <div className="flex items-center justify-between mb-4">
-            <button 
-              onClick={prevMonth}
-              className="p-2 rounded-full hover:bg-amber-300 transition-colors"
-            >
-              <ChevronLeft size={20} />
-            </button>
-            
-            <h2 className="text-xl font-semibold text-amber-800">
-              {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-            </h2>
-            
-            <button 
-              onClick={nextMonth}
-              className="p-2 rounded-full hover:bg-amber-300 transition-colors"
-            >
-              <ChevronRight size={20} />
-            </button>
-          </div>
-          
-          <table className="w-full border-collapse">
-            <thead>
-              <tr>
-                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                  <th key={day} className="p-2 text-amber-700">
-                    {day}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {generateCalendar()}
-            </tbody>
-          </table>
+        {/* Calendar header */}
+        <div className="bg-gradient-to-r from-amber-50 to-amber-100 p-4 flex items-center justify-between">
+          <button 
+            onClick={prevMonth}
+            className="p-1 rounded-full hover:bg-amber-200 transition-colors"
+            aria-label="Previous month"
+          >
+            <ChevronLeft size={20} />
+          </button>
+          <h2 className="text-lg font-semibold text-amber-800">
+            {formatMonthYear(currentMonth)}
+          </h2>
+          <button 
+            onClick={nextMonth}
+            className="p-1 rounded-full hover:bg-amber-200 transition-colors"
+            aria-label="Next month"
+          >
+            <ChevronRight size={20} />
+          </button>
         </div>
         
-        {selectedDate && (
-          <div className="p-4">
-            <h3 className="text-lg font-medium text-amber-800 mb-4">
-              Reflections for {new Date(selectedDate).toLocaleDateString('en-US', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-              })}
-            </h3>
-            
-            {selectedEntries.length > 0 ? (
-              <div className="space-y-4">
-                {selectedEntries.map(entry => (
-                  <ReflectionCard key={entry.id} entry={entry} />
-                ))}
+        {/* Calendar grid */}
+        <div className="p-4">
+          {/* Day names */}
+          <div className="grid grid-cols-7 mb-2">
+            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+              <div key={day} className="text-center text-sm font-medium text-amber-700">
+                {day}
               </div>
-            ) : (
-              <p className="text-gray-500 italic">No reflections for this date.</p>
-            )}
+            ))}
           </div>
-        )}
+          
+          {/* Calendar days */}
+          <div className="grid grid-cols-7 gap-2">
+            {calendarDays.map((day, index) => (
+              <div key={index} className="aspect-square">
+                {day && (
+                  <button
+                    onClick={() => handleDateClick(day)}
+                    className={`w-full h-full flex items-center justify-center rounded-full relative
+                      ${hasEntries(day) ? 'font-semibold' : ''}
+                      ${
+                        selectedDate === day.toISOString().split('T')[0]
+                          ? 'bg-amber-500 text-white'
+                          : hasEntries(day)
+                          ? 'hover:bg-amber-100'
+                          : 'hover:bg-gray-100'
+                      }
+                    `}
+                  >
+                    {day.getDate()}
+                    {hasEntries(day) && (
+                      <span className="absolute bottom-1 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-amber-500 rounded-full"></span>
+                    )}
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
+      
+      {/* Selected date entries */}
+      {selectedDate && (
+        <div className="mt-6">
+          <h3 className="text-lg font-semibold text-amber-800 mb-4">
+            Entries for {new Date(selectedDate).toLocaleDateString('en-US', { 
+              weekday: 'long', 
+              year: 'numeric', 
+              month: 'long', 
+              day: 'numeric' 
+            })}
+          </h3>
+          
+          {selectedEntries.length > 0 ? (
+            <div className="space-y-4">
+              {selectedEntries.map(entry => (
+                <ReflectionCard key={entry.id} entry={entry} />
+              ))}
+            </div>
+          ) : (
+            <p className="text-gray-500 italic">No entries for this date.</p>
+          )}
+        </div>
+      )}
     </div>
   );
 };

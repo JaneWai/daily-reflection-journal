@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { ReflectionEntry } from '../types';
 
 interface ReflectionContextType {
@@ -17,7 +17,11 @@ export const useReflections = () => {
   return context;
 };
 
-export const ReflectionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+interface ReflectionProviderProps {
+  children: ReactNode;
+}
+
+export const ReflectionProvider: React.FC<ReflectionProviderProps> = ({ children }) => {
   const [entries, setEntries] = useState<ReflectionEntry[]>(() => {
     const savedEntries = localStorage.getItem('reflectionEntries');
     return savedEntries ? JSON.parse(savedEntries) : [];
@@ -28,15 +32,15 @@ export const ReflectionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   }, [entries]);
 
   const addEntry = (entry: Omit<ReflectionEntry, 'id'>) => {
-    const newEntry = {
+    const newEntry: ReflectionEntry = {
       ...entry,
-      id: Date.now().toString(),
+      id: crypto.randomUUID()
     };
-    setEntries((prev) => [...prev, newEntry]);
+    setEntries(prev => [...prev, newEntry]);
   };
 
   const deleteEntry = (id: string) => {
-    setEntries((prev) => prev.filter((entry) => entry.id !== id));
+    setEntries(prev => prev.filter(entry => entry.id !== id));
   };
 
   return (

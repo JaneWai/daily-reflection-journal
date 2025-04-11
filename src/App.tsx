@@ -1,69 +1,74 @@
 import React, { useState } from 'react';
-import { PlusCircle, ListFilter, Calendar } from 'lucide-react';
 import { ReflectionProvider } from './context/ReflectionContext';
 import Header from './components/Header';
+import Footer from './components/Footer';
+import NewEntryForm from './components/NewEntryForm';
 import ListView from './components/ListView';
 import CalendarView from './components/CalendarView';
-import NewEntryForm from './components/NewEntryForm';
-
-type ViewMode = 'list' | 'calendar';
 
 function App() {
-  const [viewMode, setViewMode] = useState<ViewMode>('list');
-  const [showNewEntryForm, setShowNewEntryForm] = useState(false);
+  const [view, setView] = useState<'list' | 'calendar'>('list');
+  const [showForm, setShowForm] = useState(false);
 
   return (
     <ReflectionProvider>
       <div className="min-h-screen bg-amber-50 flex flex-col">
         <Header />
         
-        <main className="flex-1 container mx-auto py-6 px-4">
-          <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
-            <div className="flex items-center gap-2 bg-white rounded-lg shadow-sm p-1">
-              <button
-                onClick={() => setViewMode('list')}
-                className={`flex items-center gap-1 px-4 py-2 rounded-md transition-colors ${
-                  viewMode === 'list' 
-                    ? 'bg-amber-500 text-white' 
-                    : 'hover:bg-amber-100 text-gray-700'
-                }`}
-              >
-                <ListFilter size={18} />
-                <span>List View</span>
-              </button>
+        <main className="container mx-auto py-6 px-4 flex-grow">
+          <div className="max-w-4xl mx-auto">
+            <div className="flex justify-between items-center mb-6">
+              <div className="bg-white rounded-lg shadow-md overflow-hidden">
+                <div className="flex">
+                  <button
+                    onClick={() => setView('list')}
+                    className={`px-6 py-3 text-center font-medium transition-colors ${
+                      view === 'list'
+                        ? 'bg-amber-100 text-amber-800'
+                        : 'bg-white text-gray-600 hover:bg-amber-50'
+                    }`}
+                  >
+                    List View
+                  </button>
+                  <button
+                    onClick={() => setView('calendar')}
+                    className={`px-6 py-3 text-center font-medium transition-colors ${
+                      view === 'calendar'
+                        ? 'bg-amber-100 text-amber-800'
+                        : 'bg-white text-gray-600 hover:bg-amber-50'
+                    }`}
+                  >
+                    Calendar View
+                  </button>
+                </div>
+              </div>
               
               <button
-                onClick={() => setViewMode('calendar')}
-                className={`flex items-center gap-1 px-4 py-2 rounded-md transition-colors ${
-                  viewMode === 'calendar' 
-                    ? 'bg-amber-500 text-white' 
-                    : 'hover:bg-amber-100 text-gray-700'
-                }`}
+                onClick={() => setShowForm(true)}
+                className="py-3 px-6 bg-gradient-to-r from-amber-500 to-amber-600 text-white font-medium rounded-lg shadow hover:from-amber-600 hover:to-amber-700 transition-all flex items-center justify-center gap-2"
               >
-                <Calendar size={18} />
-                <span>Calendar View</span>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+                </svg>
+                Add New Entry
               </button>
             </div>
             
-            <button
-              onClick={() => setShowNewEntryForm(true)}
-              className="flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-md transition-colors shadow-sm"
-            >
-              <PlusCircle size={18} />
-              <span>Add New Entry</span>
-            </button>
+            {showForm && (
+              <div className="mb-6">
+                <div className="bg-white p-6 rounded-lg shadow-md border border-amber-100">
+                  <h2 className="text-xl font-bold text-amber-800 mb-4">New Reflection</h2>
+                  
+                  <NewEntryForm onClose={() => setShowForm(false)} />
+                </div>
+              </div>
+            )}
+            
+            {view === 'list' ? <ListView /> : <CalendarView />}
           </div>
-          
-          {viewMode === 'list' ? <ListView /> : <CalendarView />}
         </main>
         
-        <footer className="bg-amber-100 py-4 text-center text-amber-700">
-          <p>Daily Reflections Journal &copy; {new Date().getFullYear()}</p>
-        </footer>
-        
-        {showNewEntryForm && (
-          <NewEntryForm onClose={() => setShowNewEntryForm(false)} />
-        )}
+        <Footer />
       </div>
     </ReflectionProvider>
   );

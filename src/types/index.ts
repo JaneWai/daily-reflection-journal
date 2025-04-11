@@ -4,4 +4,5 @@ export interface ReflectionEntry {
   gratitude: string;
   achievement: string;
   improvement: string;
+  mood: 'happy' | 'neutral' | 'sad';
 }
