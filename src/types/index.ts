@@ -2,8 +2,9 @@ export interface ReflectionEntry {
   id: string;
   date: string;
   gratitude: string;
-  accomplishment: string;
+  achievement: string;
   improvement: string;
+  mood: string;
 }
 
 export interface User {

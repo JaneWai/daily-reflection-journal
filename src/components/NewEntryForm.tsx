@@ -9,14 +9,14 @@ const NewEntryForm: React.FC<NewEntryFormProps> = ({ onClose }) => {
   const { addEntry } = useReflections();
   
   const [formData, setFormData] = useState({
-    date: new Date().toISOString().split('T')[0],
+    date: new Date().toISOString().split('T')[0], // Still track date internally but don't show in UI
     gratitude: '',
     achievement: '',
     improvement: '',
-    mood: 'neutral' as 'happy' | 'neutral' | 'sad'
+    mood: '' // Changed to free text
   });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
@@ -29,7 +29,7 @@ const NewEntryForm: React.FC<NewEntryFormProps> = ({ onClose }) => {
       gratitude: '',
       achievement: '',
       improvement: '',
-      mood: 'neutral'
+      mood: ''
     });
     onClose();
   };
@@ -37,35 +37,18 @@ const NewEntryForm: React.FC<NewEntryFormProps> = ({ onClose }) => {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label htmlFor="date" className="block text-sm font-medium text-amber-700 mb-1">
-          Date
-        </label>
-        <input
-          type="date"
-          id="date"
-          name="date"
-          value={formData.date}
-          onChange={handleChange}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
-          required
-        />
-      </div>
-      
-      <div>
         <label htmlFor="mood" className="block text-sm font-medium text-amber-700 mb-1">
           How are you feeling today?
         </label>
-        <select
+        <input
+          type="text"
           id="mood"
           name="mood"
           value={formData.mood}
           onChange={handleChange}
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
-        >
-          <option value="happy">Happy 😊</option>
-          <option value="neutral">Neutral 😐</option>
-          <option value="sad">Sad 😔</option>
-        </select>
+          placeholder="Describe your mood..."
+        />
       </div>
       
       <div>
