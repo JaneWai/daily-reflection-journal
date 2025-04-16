@@ -5,10 +5,13 @@ import ReflectionCard from './ReflectionCard';
 const ListView: React.FC = () => {
   const { entries } = useReflections();
   
-  // Sort entries by date (newest first)
-  const sortedEntries = [...entries].sort((a, b) => 
-    new Date(b.date).getTime() - new Date(a.date).getTime()
-  );
+  // Sort entries by timestamp (newest first)
+  const sortedEntries = [...entries].sort((a, b) => {
+    // Use timestamp if available, otherwise fall back to date
+    const timeA = a.timestamp ? new Date(a.timestamp).getTime() : new Date(a.date).getTime();
+    const timeB = b.timestamp ? new Date(b.timestamp).getTime() : new Date(b.date).getTime();
+    return timeB - timeA;
+  });
 
   if (sortedEntries.length === 0) {
     return (

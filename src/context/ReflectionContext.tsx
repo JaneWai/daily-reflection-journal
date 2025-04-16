@@ -4,7 +4,7 @@ import { ReflectionEntry } from '../types';
 
 interface ReflectionContextType {
   entries: ReflectionEntry[];
-  addEntry: (entry: Omit<ReflectionEntry, 'id'>) => void;
+  addEntry: (entry: Omit<ReflectionEntry, 'id' | 'timestamp'>) => void;
   updateEntry: (id: string, entry: Partial<ReflectionEntry>) => void;
   deleteEntry: (id: string) => void;
 }
@@ -31,7 +31,22 @@ export const ReflectionProvider: React.FC<ReflectionProviderProps> = ({ children
     try {
       const savedEntries = localStorage.getItem('reflectionEntries');
       if (savedEntries) {
-        setEntries(JSON.parse(savedEntries));
+        const parsedEntries = JSON.parse(savedEntries);
+        
+        // Handle migration of old entries without timestamp
+        const migratedEntries = parsedEntries.map((entry: any) => {
+          if (!entry.timestamp) {
+            // For old entries, use the date and set a default time (noon)
+            const dateObj = new Date(entry.date);
+            return {
+              ...entry,
+              timestamp: dateObj.toISOString()
+            };
+          }
+          return entry;
+        });
+        
+        setEntries(migratedEntries);
       }
     } catch (error) {
       console.error('Error loading entries from localStorage:', error);
@@ -45,10 +60,14 @@ export const ReflectionProvider: React.FC<ReflectionProviderProps> = ({ children
     }
   }, [entries]);
 
-  const addEntry = (entry: Omit<ReflectionEntry, 'id'>) => {
+  const addEntry = (entry: Omit<ReflectionEntry, 'id' | 'timestamp'>) => {
+    // Create a new timestamp using the user's local timezone
+    const now = new Date();
+    
     const newEntry: ReflectionEntry = {
       ...entry,
-      id: uuidv4()
+      id: uuidv4(),
+      timestamp: now.toISOString() // Store full ISO timestamp
     };
     
     setEntries(prevEntries => [...prevEntries, newEntry]);

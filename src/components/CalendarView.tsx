@@ -11,13 +11,7 @@ const CalendarView: React.FC = () => {
   // Get entries for the selected date
   const selectedEntries = entries.filter(entry => {
     if (!selectedDate) return false;
-    const entryDate = new Date(entry.date);
-    const selected = new Date(selectedDate);
-    return (
-      entryDate.getDate() === selected.getDate() &&
-      entryDate.getMonth() === selected.getMonth() &&
-      entryDate.getFullYear() === selected.getFullYear()
-    );
+    return entry.date.split('T')[0] === selectedDate;
   });
 
   // Calendar navigation
@@ -62,16 +56,46 @@ const CalendarView: React.FC = () => {
     return calendarDays;
   };
 
+  // Get entries for a specific date
+  const getEntriesForDate = (date: Date) => {
+    const dateStr = formatDateToYYYYMMDD(date);
+    return entries.filter(entry => entry.date.split('T')[0] === dateStr);
+  };
+
   // Check if a date has entries
   const hasEntries = (date: Date) => {
-    return entries.some(entry => {
-      const entryDate = new Date(entry.date);
-      return (
-        entryDate.getDate() === date.getDate() &&
-        entryDate.getMonth() === date.getMonth() &&
-        entryDate.getFullYear() === date.getFullYear()
-      );
+    return getEntriesForDate(date).length > 0;
+  };
+
+  // Get preview text for a date
+  const getEntryPreview = (date: Date) => {
+    const dateEntries = getEntriesForDate(date);
+    if (dateEntries.length === 0) return null;
+    
+    // Sort entries by timestamp (newest first) if available
+    const sortedEntries = [...dateEntries].sort((a, b) => {
+      const timeA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+      const timeB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+      return timeB - timeA;
     });
+    
+    // Get the first (most recent) entry for this date
+    const entry = sortedEntries[0];
+    
+    // Create a short preview from gratitude text
+    const gratitudePreview = entry.gratitude.length > 20 
+      ? `${entry.gratitude.substring(0, 20)}...` 
+      : entry.gratitude;
+    
+    return {
+      mood: entry.mood,
+      preview: gratitudePreview,
+      count: dateEntries.length,
+      time: entry.timestamp ? new Date(entry.timestamp).toLocaleTimeString(undefined, { 
+        hour: '2-digit', 
+        minute: '2-digit'
+      }) : null
+    };
   };
 
   // Format month and year
@@ -79,9 +103,17 @@ const CalendarView: React.FC = () => {
     return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
   };
 
+  // Format date to YYYY-MM-DD
+  const formatDateToYYYYMMDD = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   // Handle date selection
   const handleDateClick = (date: Date) => {
-    const formattedDate = date.toISOString().split('T')[0];
+    const formattedDate = formatDateToYYYYMMDD(date);
     setSelectedDate(formattedDate);
   };
 
@@ -125,26 +157,59 @@ const CalendarView: React.FC = () => {
           {/* Calendar days */}
           <div className="grid grid-cols-7 gap-2">
             {calendarDays.map((day, index) => (
-              <div key={index} className="aspect-square">
+              <div key={index} className="min-h-[80px]">
                 {day && (
-                  <button
-                    onClick={() => handleDateClick(day)}
-                    className={`w-full h-full flex items-center justify-center rounded-full relative
-                      ${hasEntries(day) ? 'font-semibold' : ''}
-                      ${
-                        selectedDate === day.toISOString().split('T')[0]
+                  <div 
+                    className={`h-full w-full p-1 rounded-lg border ${
+                      selectedDate === formatDateToYYYYMMDD(day)
+                        ? 'border-amber-500 bg-amber-50'
+                        : 'border-transparent hover:bg-gray-50'
+                    }`}
+                  >
+                    <button
+                      onClick={() => handleDateClick(day)}
+                      className={`w-7 h-7 flex items-center justify-center rounded-full mb-1 ${
+                        selectedDate === formatDateToYYYYMMDD(day)
                           ? 'bg-amber-500 text-white'
                           : hasEntries(day)
-                          ? 'hover:bg-amber-100'
-                          : 'hover:bg-gray-100'
-                      }
-                    `}
-                  >
-                    {day.getDate()}
+                          ? 'font-semibold text-amber-700'
+                          : ''
+                      }`}
+                    >
+                      {day.getDate()}
+                    </button>
+                    
                     {hasEntries(day) && (
-                      <span className="absolute bottom-1 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-amber-500 rounded-full"></span>
+                      <div className="text-xs">
+                        {(() => {
+                          const preview = getEntryPreview(day);
+                          if (!preview) return null;
+                          
+                          return (
+                            <>
+                              <div className="flex items-center justify-between">
+                                <span className="text-amber-700 font-medium truncate">
+                                  {preview.mood.substring(0, 10)}
+                                  {preview.mood.length > 10 ? '...' : ''}
+                                </span>
+                                {preview.count > 1 && (
+                                  <span className="text-amber-600 text-[10px]">+{preview.count - 1}</span>
+                                )}
+                              </div>
+                              {preview.time && (
+                                <div className="text-gray-500 text-[10px] mt-0.5">
+                                  {preview.time}
+                                </div>
+                              )}
+                              <div className="text-gray-600 line-clamp-2 mt-1">
+                                {preview.preview}
+                              </div>
+                            </>
+                          );
+                        })()}
+                      </div>
                     )}
-                  </button>
+                  </div>
                 )}
               </div>
             ))}
@@ -156,7 +221,7 @@ const CalendarView: React.FC = () => {
       {selectedDate && (
         <div className="mt-6">
           <h3 className="text-lg font-semibold text-amber-800 mb-4">
-            Entries for {new Date(selectedDate).toLocaleDateString('en-US', { 
+            Entries for {new Date(`${selectedDate}T12:00:00`).toLocaleDateString('en-US', { 
               weekday: 'long', 
               year: 'numeric', 
               month: 'long', 
@@ -166,9 +231,17 @@ const CalendarView: React.FC = () => {
           
           {selectedEntries.length > 0 ? (
             <div className="space-y-4">
-              {selectedEntries.map(entry => (
-                <ReflectionCard key={entry.id} entry={entry} />
-              ))}
+              {selectedEntries
+                .sort((a, b) => {
+                  // Sort by timestamp if available (newest first)
+                  const timeA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+                  const timeB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+                  return timeB - timeA;
+                })
+                .map(entry => (
+                  <ReflectionCard key={entry.id} entry={entry} />
+                ))
+              }
             </div>
           ) : (
             <p className="text-gray-500 italic">No entries for this date.</p>
