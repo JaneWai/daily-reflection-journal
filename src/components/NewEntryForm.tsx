@@ -80,13 +80,14 @@ const NewEntryForm: React.FC<NewEntryFormProps> = ({ onClose }) => {
           onChange={(e) => setGratitude(e.target.value)}
           onFocus={() => setActiveField('gratitude')}
           onBlur={() => setActiveField(null)}
-          className={`w-full px-3 py-2 border transition-all duration-300 ${
+          className={`w-full px-3 py-2 bg-amber-50 text-gray-800 border transition-all duration-300 ${
             activeField === 'gratitude' 
               ? 'border-amber-500 ring-2 ring-amber-200' 
-              : 'border-gray-300 hover:border-amber-300'
+              : 'border-amber-200 hover:border-amber-300'
           } rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500`}
           rows={3}
           required
+          placeholder="I'm grateful for..."
         ></textarea>
       </div>
       
@@ -100,13 +101,14 @@ const NewEntryForm: React.FC<NewEntryFormProps> = ({ onClose }) => {
           onChange={(e) => setAchievement(e.target.value)}
           onFocus={() => setActiveField('achievement')}
           onBlur={() => setActiveField(null)}
-          className={`w-full px-3 py-2 border transition-all duration-300 ${
+          className={`w-full px-3 py-2 bg-amber-50 text-gray-800 border transition-all duration-300 ${
             activeField === 'achievement' 
               ? 'border-amber-500 ring-2 ring-amber-200' 
-              : 'border-gray-300 hover:border-amber-300'
+              : 'border-amber-200 hover:border-amber-300'
           } rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500`}
           rows={3}
           required
+          placeholder="Today I accomplished..."
         ></textarea>
       </div>
       
@@ -120,13 +122,14 @@ const NewEntryForm: React.FC<NewEntryFormProps> = ({ onClose }) => {
           onChange={(e) => setImprovement(e.target.value)}
           onFocus={() => setActiveField('improvement')}
           onBlur={() => setActiveField(null)}
-          className={`w-full px-3 py-2 border transition-all duration-300 ${
+          className={`w-full px-3 py-2 bg-amber-50 text-gray-800 border transition-all duration-300 ${
             activeField === 'improvement' 
               ? 'border-amber-500 ring-2 ring-amber-200' 
-              : 'border-gray-300 hover:border-amber-300'
+              : 'border-amber-200 hover:border-amber-300'
           } rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500`}
           rows={3}
           required
+          placeholder="I could improve on..."
         ></textarea>
       </div>
       
