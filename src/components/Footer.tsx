@@ -2,9 +2,19 @@ import React from 'react';
 
 const Footer: React.FC = () => {
   return (
-    <footer className="bg-gradient-to-r from-amber-100 to-amber-200 py-4 shadow-inner mt-auto">
-      <div className="container mx-auto text-center">
-        <p className="text-amber-800">Daily Reflections Journal © 2025</p>
+    <footer className="bg-amber-700 text-white py-4">
+      <div className="container mx-auto px-4 text-center">
+        <p className="text-amber-100">
+          Daily Reflection Journal &copy; {new Date().getFullYear()} | 
+          <a 
+            href="https://www.chatandbuild.com" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="ml-1 hover:text-white underline"
+          >
+            Powered by ChatAndBuild
+          </a>
+        </p>
       </div>
     </footer>
   );

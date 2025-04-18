@@ -2,113 +2,149 @@ import React, { useState } from 'react';
 import { useReflections } from '../context/ReflectionContext';
 
 interface NewEntryFormProps {
-  onClose: () => void;
+  onClose?: () => void;
 }
 
 const NewEntryForm: React.FC<NewEntryFormProps> = ({ onClose }) => {
   const { addEntry } = useReflections();
+  const [gratitude, setGratitude] = useState('');
+  const [achievement, setAchievement] = useState('');
+  const [improvement, setImprovement] = useState('');
+  const [mood, setMood] = useState('');
+  const [activeField, setActiveField] = useState<string | null>(null);
   
-  const [formData, setFormData] = useState({
-    date: new Date().toISOString().split('T')[0], // Still track date internally but don't show in UI
-    gratitude: '',
-    achievement: '',
-    improvement: '',
-    mood: '' // Changed to free text
-  });
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    addEntry(formData);
-    setFormData({
-      date: new Date().toISOString().split('T')[0],
-      gratitude: '',
-      achievement: '',
-      improvement: '',
-      mood: ''
+    
+    // Get current date and time
+    const now = new Date();
+    const date = now.toISOString().split('T')[0]; // YYYY-MM-DD
+    const timestamp = now.toISOString(); // Full ISO timestamp
+    
+    await addEntry({
+      date,
+      timestamp,
+      gratitude,
+      achievement,
+      improvement,
+      mood: mood || 'Neutral', // Default mood if not selected
     });
-    onClose();
+    
+    // Reset form
+    setGratitude('');
+    setAchievement('');
+    setImprovement('');
+    setMood('');
+    
+    // Close form if callback provided
+    if (onClose) onClose();
   };
-
+  
+  const moodOptions = [
+    'Joyful', 'Happy', 'Content', 'Neutral', 
+    'Tired', 'Anxious', 'Sad', 'Frustrated'
+  ];
+  
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
-        <label htmlFor="mood" className="block text-sm font-medium text-amber-700 mb-1">
+    <form onSubmit={handleSubmit} className="transition-all duration-300">
+      <div className="mb-4 animate-fadeSlideUp opacity-0" style={{ animationDelay: '0.1s' }}>
+        <label className="block text-amber-700 font-medium mb-2">
           How are you feeling today?
         </label>
-        <input
-          type="text"
-          id="mood"
-          name="mood"
-          value={formData.mood}
-          onChange={handleChange}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
-          placeholder="Describe your mood..."
-        />
+        <div className="flex flex-wrap gap-2">
+          {moodOptions.map((option, index) => (
+            <button
+              key={option}
+              type="button"
+              onClick={() => setMood(option)}
+              className={`px-3 py-1.5 rounded-full text-sm transition-all duration-300 transform ${
+                mood === option
+                  ? 'bg-amber-500 text-white scale-110'
+                  : 'bg-amber-100 text-amber-800 hover:bg-amber-200 hover:scale-105'
+              }`}
+              style={{ animationDelay: `${0.1 + index * 0.05}s` }}
+            >
+              {option}
+            </button>
+          ))}
+        </div>
       </div>
       
-      <div>
-        <label htmlFor="gratitude" className="block text-sm font-medium text-amber-700 mb-1">
+      <div className="mb-4 animate-fadeSlideUp opacity-0" style={{ animationDelay: '0.3s' }}>
+        <label htmlFor="gratitude" className="block text-amber-700 font-medium mb-2">
           What are you grateful for today?
         </label>
         <textarea
           id="gratitude"
-          name="gratitude"
-          value={formData.gratitude}
-          onChange={handleChange}
+          value={gratitude}
+          onChange={(e) => setGratitude(e.target.value)}
+          onFocus={() => setActiveField('gratitude')}
+          onBlur={() => setActiveField(null)}
+          className={`w-full px-3 py-2 border transition-all duration-300 ${
+            activeField === 'gratitude' 
+              ? 'border-amber-500 ring-2 ring-amber-200' 
+              : 'border-gray-300 hover:border-amber-300'
+          } rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500`}
           rows={3}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
           required
-        />
+        ></textarea>
       </div>
       
-      <div>
-        <label htmlFor="achievement" className="block text-sm font-medium text-amber-700 mb-1">
-          What have you done great today?
+      <div className="mb-4 animate-fadeSlideUp opacity-0" style={{ animationDelay: '0.5s' }}>
+        <label htmlFor="achievement" className="block text-amber-700 font-medium mb-2">
+          What's one thing you accomplished today?
         </label>
         <textarea
           id="achievement"
-          name="achievement"
-          value={formData.achievement}
-          onChange={handleChange}
+          value={achievement}
+          onChange={(e) => setAchievement(e.target.value)}
+          onFocus={() => setActiveField('achievement')}
+          onBlur={() => setActiveField(null)}
+          className={`w-full px-3 py-2 border transition-all duration-300 ${
+            activeField === 'achievement' 
+              ? 'border-amber-500 ring-2 ring-amber-200' 
+              : 'border-gray-300 hover:border-amber-300'
+          } rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500`}
           rows={3}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
           required
-        />
+        ></textarea>
       </div>
       
-      <div>
-        <label htmlFor="improvement" className="block text-sm font-medium text-amber-700 mb-1">
-          What can you do better tomorrow?
+      <div className="mb-6 animate-fadeSlideUp opacity-0" style={{ animationDelay: '0.7s' }}>
+        <label htmlFor="improvement" className="block text-amber-700 font-medium mb-2">
+          What's one thing you could improve on?
         </label>
         <textarea
           id="improvement"
-          name="improvement"
-          value={formData.improvement}
-          onChange={handleChange}
+          value={improvement}
+          onChange={(e) => setImprovement(e.target.value)}
+          onFocus={() => setActiveField('improvement')}
+          onBlur={() => setActiveField(null)}
+          className={`w-full px-3 py-2 border transition-all duration-300 ${
+            activeField === 'improvement' 
+              ? 'border-amber-500 ring-2 ring-amber-200' 
+              : 'border-gray-300 hover:border-amber-300'
+          } rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500`}
           rows={3}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
           required
-        />
+        ></textarea>
       </div>
       
-      <div className="flex gap-3 pt-2">
-        <button
-          type="button"
-          onClick={onClose}
-          className="flex-1 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
-        >
-          Cancel
-        </button>
+      <div className="flex justify-end space-x-2 animate-fadeSlideUp opacity-0" style={{ animationDelay: '0.9s' }}>
+        {onClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-all duration-300 hover:shadow-md"
+          >
+            Cancel
+          </button>
+        )}
         <button
           type="submit"
-          className="flex-1 py-2 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-md hover:from-amber-600 hover:to-amber-700 transition-colors"
+          className="px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-md hover:from-amber-600 hover:to-amber-700 transition-all duration-300 transform hover:scale-105 hover:shadow-md"
         >
-          Save Entry
+          Save Reflection
         </button>
       </div>
     </form>

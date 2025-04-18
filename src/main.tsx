@@ -1,16 +1,13 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import App from './App.tsx';
-import { AuthProvider } from './context/AuthContext';
-import { ReflectionProvider } from './context/ReflectionContext';
+import App from './App';
 import './index.css';
+import { AuthProvider } from './context/AuthContext';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <AuthProvider>
-      <ReflectionProvider>
-        <App />
-      </ReflectionProvider>
+      <App />
     </AuthProvider>
-  </React.StrictMode>,
+  </React.StrictMode>
 );

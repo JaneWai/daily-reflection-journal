@@ -157,7 +157,7 @@ const CalendarView: React.FC = () => {
           {/* Calendar days */}
           <div className="grid grid-cols-7 gap-2">
             {calendarDays.map((day, index) => (
-              <div key={index} className="min-h-[80px]">
+              <div key={index} className="min-h-[80px] relative">
                 {day && (
                   <div 
                     className={`h-full w-full p-1 rounded-lg border ${
@@ -168,12 +168,12 @@ const CalendarView: React.FC = () => {
                   >
                     <button
                       onClick={() => handleDateClick(day)}
-                      className={`w-7 h-7 flex items-center justify-center rounded-full mb-1 ${
+                      className={`w-7 h-7 flex items-center justify-center rounded-full mb-1 text-black ${
                         selectedDate === formatDateToYYYYMMDD(day)
                           ? 'bg-amber-500 text-white'
                           : hasEntries(day)
                           ? 'font-semibold text-amber-700'
-                          : ''
+                          : 'text-gray-700'
                       }`}
                     >
                       {day.getDate()}

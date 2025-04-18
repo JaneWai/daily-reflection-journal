@@ -1,16 +1,23 @@
 import React from 'react';
+import LoginButton from './LoginButton';
 import { BookHeart } from 'lucide-react';
 
 const Header: React.FC = () => {
   return (
-    <header className="bg-gradient-to-r from-amber-100 to-amber-200 p-4 shadow-md">
-      <div className="container mx-auto flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <BookHeart className="h-8 w-8 text-amber-700" />
-          <h1 className="text-2xl font-bold text-amber-800">Daily Reflections</h1>
+    <header className="bg-amber-600 text-white shadow-md">
+      <div className="container mx-auto px-4 py-4">
+        <div className="flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <BookHeart size={28} className="text-amber-100" />
+            <h1 className="text-2xl font-bold">Daily Reflection Journal</h1>
+          </div>
+          <LoginButton />
         </div>
-        <div className="flex items-center gap-4">
-          <p className="text-amber-700 italic hidden md:block">Nurture your growth through daily reflection</p>
+        
+        <div className="mt-2">
+          <p className="text-amber-100 italic">
+            "Take a moment to reflect, grow, and appreciate today."
+          </p>
         </div>
       </div>
     </header>

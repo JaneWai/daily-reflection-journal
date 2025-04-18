@@ -1,12 +1,17 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { v4 as uuidv4 } from 'uuid';
-import { ReflectionEntry } from '../types';
+import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { ReflectionEntry, SyncStatus, User } from '../types';
+import { useAuth } from './AuthContext';
+import { supabase } from '../services/supabase';
 
 interface ReflectionContextType {
   entries: ReflectionEntry[];
-  addEntry: (entry: Omit<ReflectionEntry, 'id' | 'timestamp'>) => void;
-  updateEntry: (id: string, entry: Partial<ReflectionEntry>) => void;
-  deleteEntry: (id: string) => void;
+  loading: boolean;
+  error: string | null;
+  addEntry: (entry: Omit<ReflectionEntry, 'id' | 'synced'>) => Promise<void>;
+  updateEntry: (id: string, entry: Partial<ReflectionEntry>) => Promise<void>;
+  deleteEntry: (id: string) => Promise<void>;
+  syncStatus: SyncStatus;
+  syncLocalEntries: () => Promise<void>;
 }
 
 const ReflectionContext = createContext<ReflectionContextType | undefined>(undefined);
@@ -25,73 +30,254 @@ interface ReflectionProviderProps {
 
 export const ReflectionProvider: React.FC<ReflectionProviderProps> = ({ children }) => {
   const [entries, setEntries] = useState<ReflectionEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>({
+    syncing: false,
+    lastSynced: null,
+    error: null,
+  });
+  
+  const { user } = useAuth();
 
-  // Load entries from localStorage on initial render
+  // Load entries from local storage or Supabase
   useEffect(() => {
-    try {
-      const savedEntries = localStorage.getItem('reflectionEntries');
-      if (savedEntries) {
-        const parsedEntries = JSON.parse(savedEntries);
+    const loadEntries = async () => {
+      setLoading(true);
+      setError(null);
+      
+      try {
+        // First, load from local storage
+        const localEntries = loadFromLocalStorage();
         
-        // Handle migration of old entries without timestamp
-        const migratedEntries = parsedEntries.map((entry: any) => {
-          if (!entry.timestamp) {
-            // For old entries, use the date and set a default time (noon)
-            const dateObj = new Date(entry.date);
-            return {
-              ...entry,
-              timestamp: dateObj.toISOString()
-            };
-          }
-          return entry;
-        });
+        // If user is logged in, fetch from Supabase
+        if (user) {
+          const { data, error } = await supabase
+            .from('reflections')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('date', { ascending: false });
+            
+          if (error) throw error;
+          
+          // Merge remote entries with local entries
+          // Local entries that aren't synced take precedence
+          const remoteEntries = data as ReflectionEntry[];
+          
+          // Filter out local entries that exist in remote (already synced)
+          const unsynced = localEntries.filter(
+            local => !remoteEntries.some(remote => remote.id === local.id)
+          );
+          
+          // Combine remote entries with unsynced local entries
+          setEntries([...remoteEntries, ...unsynced]);
+          
+          // Update last synced time
+          setSyncStatus(prev => ({
+            ...prev,
+            lastSynced: new Date(),
+            error: null,
+          }));
+        } else {
+          // If not logged in, just use local entries
+          setEntries(localEntries);
+        }
+      } catch (err: any) {
+        console.error('Error loading entries:', err);
+        setError('Failed to load entries. Please try again later.');
+        setSyncStatus(prev => ({
+          ...prev,
+          error: err.message || 'Failed to sync entries',
+        }));
         
-        setEntries(migratedEntries);
+        // Fall back to local entries
+        setEntries(loadFromLocalStorage());
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error('Error loading entries from localStorage:', error);
-    }
-  }, []);
-
-  // Save entries to localStorage whenever they change
-  useEffect(() => {
-    if (entries.length > 0) {
-      localStorage.setItem('reflectionEntries', JSON.stringify(entries));
-    }
-  }, [entries]);
-
-  const addEntry = (entry: Omit<ReflectionEntry, 'id' | 'timestamp'>) => {
-    // Create a new timestamp using the user's local timezone
-    const now = new Date();
-    
-    const newEntry: ReflectionEntry = {
-      ...entry,
-      id: uuidv4(),
-      timestamp: now.toISOString() // Store full ISO timestamp
     };
     
-    setEntries(prevEntries => [...prevEntries, newEntry]);
+    loadEntries();
+  }, [user]);
+
+  // Save entries to local storage whenever they change
+  useEffect(() => {
+    saveToLocalStorage(entries);
+  }, [entries]);
+
+  // Load entries from local storage
+  const loadFromLocalStorage = (): ReflectionEntry[] => {
+    try {
+      const storedEntries = localStorage.getItem('reflectionEntries');
+      return storedEntries ? JSON.parse(storedEntries) : [];
+    } catch (err) {
+      console.error('Error loading from local storage:', err);
+      return [];
+    }
   };
 
-  const updateEntry = (id: string, updatedFields: Partial<ReflectionEntry>) => {
-    setEntries(prevEntries => 
-      prevEntries.map(entry => 
-        entry.id === id ? { ...entry, ...updatedFields } : entry
-      )
-    );
+  // Save entries to local storage
+  const saveToLocalStorage = (entries: ReflectionEntry[]) => {
+    try {
+      localStorage.setItem('reflectionEntries', JSON.stringify(entries));
+    } catch (err) {
+      console.error('Error saving to local storage:', err);
+    }
   };
 
-  const deleteEntry = (id: string) => {
-    setEntries(prevEntries => prevEntries.filter(entry => entry.id !== id));
+  // Add a new entry
+  const addEntry = async (entry: Omit<ReflectionEntry, 'id' | 'synced'>) => {
+    try {
+      const newEntry: ReflectionEntry = {
+        ...entry,
+        id: crypto.randomUUID(),
+        synced: false,
+      };
+      
+      // Add to local state
+      setEntries(prev => [newEntry, ...prev]);
+      
+      // If user is logged in, sync to Supabase
+      if (user) {
+        await syncEntryToSupabase(newEntry, user);
+      }
+    } catch (err: any) {
+      console.error('Error adding entry:', err);
+      setError('Failed to add entry. Please try again.');
+    }
+  };
+
+  // Update an existing entry
+  const updateEntry = async (id: string, updates: Partial<ReflectionEntry>) => {
+    try {
+      // Update in local state
+      setEntries(prev => 
+        prev.map(entry => 
+          entry.id === id 
+            ? { ...entry, ...updates, synced: false } 
+            : entry
+        )
+      );
+      
+      // If user is logged in, sync to Supabase
+      if (user) {
+        const updatedEntry = entries.find(e => e.id === id);
+        if (updatedEntry) {
+          await syncEntryToSupabase({ ...updatedEntry, ...updates }, user);
+        }
+      }
+    } catch (err: any) {
+      console.error('Error updating entry:', err);
+      setError('Failed to update entry. Please try again.');
+    }
+  };
+
+  // Delete an entry
+  const deleteEntry = async (id: string) => {
+    try {
+      // Remove from local state
+      setEntries(prev => prev.filter(entry => entry.id !== id));
+      
+      // If user is logged in, delete from Supabase
+      if (user) {
+        await supabase
+          .from('reflections')
+          .delete()
+          .eq('id', id)
+          .eq('user_id', user.id);
+      }
+    } catch (err: any) {
+      console.error('Error deleting entry:', err);
+      setError('Failed to delete entry. Please try again.');
+    }
+  };
+
+  // Sync a single entry to Supabase
+  const syncEntryToSupabase = async (entry: ReflectionEntry, user: User) => {
+    try {
+      // Prepare entry for Supabase (add user_id, remove synced flag)
+      const { synced, ...entryData } = entry;
+      const supabaseEntry = {
+        ...entryData,
+        user_id: user.id,
+      };
+      
+      // Upsert to Supabase (insert if not exists, update if exists)
+      const { error } = await supabase
+        .from('reflections')
+        .upsert(supabaseEntry, { onConflict: 'id' });
+        
+      if (error) throw error;
+      
+      // Mark as synced in local state
+      setEntries(prev => 
+        prev.map(e => 
+          e.id === entry.id 
+            ? { ...e, synced: true } 
+            : e
+        )
+      );
+      
+      // Update sync status
+      setSyncStatus(prev => ({
+        ...prev,
+        lastSynced: new Date(),
+        error: null,
+      }));
+    } catch (err: any) {
+      console.error('Error syncing entry to Supabase:', err);
+      setSyncStatus(prev => ({
+        ...prev,
+        error: err.message || 'Failed to sync entry',
+      }));
+      throw err;
+    }
+  };
+
+  // Sync all local entries to Supabase
+  const syncLocalEntries = async () => {
+    if (!user) return;
+    
+    setSyncStatus(prev => ({ ...prev, syncing: true, error: null }));
+    
+    try {
+      // Get unsynced entries
+      const unsynced = entries.filter(entry => !entry.synced);
+      
+      // Sync each entry
+      for (const entry of unsynced) {
+        await syncEntryToSupabase(entry, user);
+      }
+      
+      // Update sync status
+      setSyncStatus({
+        syncing: false,
+        lastSynced: new Date(),
+        error: null,
+      });
+    } catch (err: any) {
+      console.error('Error syncing entries:', err);
+      setSyncStatus({
+        syncing: false,
+        lastSynced: syncStatus.lastSynced,
+        error: err.message || 'Failed to sync entries',
+      });
+    }
   };
 
   return (
-    <ReflectionContext.Provider value={{
-      entries,
-      addEntry,
-      updateEntry,
-      deleteEntry
-    }}>
+    <ReflectionContext.Provider
+      value={{
+        entries,
+        loading,
+        error,
+        addEntry,
+        updateEntry,
+        deleteEntry,
+        syncStatus,
+        syncLocalEntries,
+      }}
+    >
       {children}
     </ReflectionContext.Provider>
   );
